@@ -36,6 +36,8 @@ frappe.ui.form.on("Auto Email Report", {
 			}
 		}
 
+		frm.add_custom_button(__("Get Emails"), () => show_get_emails_dialog(frm));
+
 		frm.set_query("sender", function () {
 			return {
 				filters: {
@@ -213,3 +215,136 @@ frappe.ui.form.on("Auto Email Report", {
 		}
 	},
 });
+
+function show_get_emails_dialog(frm) {
+	let dialog = new frappe.ui.Dialog({
+		title: __("Fetch Emails from User Filters"),
+		size: "large",
+		fields: [
+			{
+				fieldtype: "Select",
+				label: __("Match"),
+				options: [
+					{ label: __("Match ALL filters (AND)"), value: "AND" },
+					{ label: __("Match ANY filter (OR)"), value: "OR" },
+				],
+				default: "AND",
+			},
+			{
+				fieldname: "filter_area",
+				fieldtype: "HTML",
+			},
+			{ fieldname: "col_break", fieldtype: "Column Break" },
+			{
+				fieldname: "preview_area",
+				fieldtype: "HTML",
+				options: `<div class="text-muted small" style="padding-top: 6px;">
+					${__("Set filters and click Preview to see matching users.")}
+				</div>`,
+			},
+		],
+		primary_action_label: __("Fetch & Add Emails"),
+		primary_action: () => fetch_emails_and_apply(frm, dialog),
+	});
+
+	dialog.show();
+
+	frappe.model.with_doctype("User", () => {
+		let filter_group = new frappe.ui.FilterGroup({
+			parent: dialog.get_field("filter_area").$wrapper,
+			doctype: "User",
+			on_change: () => {},
+		});
+
+		dialog.filter_group = filter_group;
+
+		filter_group.add_filter?.("User", "name", "like", "");
+	});
+
+	dialog.set_secondary_action_label(__("Preview"));
+	dialog.set_secondary_action(() => preview_matching_emails(dialog));
+}
+
+function get_dialog_filters(dialog) {
+	if (!dialog.filter_group) return [];
+	return dialog.filter_group.get_filters() || [];
+}
+
+function preview_matching_emails(dialog) {
+	let filters = get_dialog_filters(dialog);
+	let condition = dialog.get_value("condition") || "AND";
+
+	if (!filters.length) {
+		frappe.msgprint(
+			__("Add at least one filter, or use Fetch & Add to pull all enabled users.")
+		);
+		return;
+	}
+
+	frappe.call({
+		method: "frappe.email.doctype.auto_email_report.auto_email_report.get_filtered_user_emails",
+		args: { filters: JSON.stringify(filters), condition },
+		freeze: true,
+		freeze_message: __("Checking matches..."),
+		callback: (r) => {
+			let emails = r.message || [];
+			dialog.set_df_property(
+				"preview_area",
+				"options",
+				`<div class="small" style="padding-top: 6px;">
+					<strong>${emails.length}</strong> ${__("user(s) matched")}
+					${
+						emails.length
+							? "<br>" +
+							  emails.slice(0, 10).join(", ") +
+							  (emails.length > 10
+									? __(" …and {0} more", [emails.length - 10])
+									: "")
+							: ""
+					}
+				</div>`
+			);
+		},
+	});
+}
+
+function fetch_emails_and_apply(frm, dialog) {
+	let filters = get_dialog_filters(dialog);
+	let condition = dialog.get_value("condition") || "AND";
+
+	let do_fetch = () => {
+		frappe.call({
+			method: "frappe.email.doctype.auto_email_report.auto_email_report.get_filtered_user_emails",
+			args: { filters: JSON.stringify(filters), condition },
+			freeze: true,
+			freeze_message: __("Fetching emails..."),
+			callback: (r) => {
+				let fetched = r.message || [];
+				if (!fetched.length) {
+					frappe.msgprint(__("No users matched the given filters."));
+					return;
+				}
+				let existing = (frm.doc.email_to || "")
+					.split(/[\n,]+/)
+					.map((e) => e.trim())
+					.filter(Boolean);
+				let merged = Array.from(new Set([...existing, ...fetched]));
+				frm.set_value("email_to", merged.join("\n"));
+				frappe.show_alert({
+					message: __("{0} email(s) added", [fetched.length]),
+					indicator: "green",
+				});
+				dialog.hide();
+			},
+		});
+	};
+
+	if (!filters.length) {
+		frappe.confirm(
+			__("No filters are set. This will fetch ALL enabled users. Continue?"),
+			do_fetch
+		);
+	} else {
+		do_fetch();
+	}
+}

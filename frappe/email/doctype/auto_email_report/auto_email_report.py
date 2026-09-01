@@ -417,3 +417,12 @@ def get_half_year_start(as_str=False):
 	result_date = datetime.date(year, month, day)
 
 	return result_date if not as_str else result_date.strftime(DATE_FORMAT)
+
+
+@frappe.whitelist()
+def get_filtered_user_emails(filters: str, condition: str = "AND"):
+	filters = frappe.parse_json(filters)
+	filter_kwargs = {"or_filters": filters} if condition == "OR" else {"filters": filters}
+
+	users = frappe.get_all("User", pluck="email", limit=1000, **filter_kwargs)
+	return sorted(set(filter(None, users)))
