@@ -421,8 +421,9 @@ def get_half_year_start(as_str=False):
 
 @frappe.whitelist()
 def get_filtered_user_emails(filters: str, condition: str = "AND"):
+	frappe.has_permission("User", "read")
 	filters = frappe.parse_json(filters)
 	filter_kwargs = {"or_filters": filters} if condition == "OR" else {"filters": filters}
 
-	users = frappe.get_all("User", pluck="email", limit=1000, **filter_kwargs)
+	users = frappe.get_list("User", pluck="email", limit=1000, **filter_kwargs)
 	return sorted(set(filter(None, users)))
