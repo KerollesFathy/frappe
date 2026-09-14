@@ -114,7 +114,7 @@ onBeforeUnmount(disarm);
 }
 
 .pfb-context-item:hover {
-	background: var(--gray-100);
+	background: var(--surface-gray-2);
 }
 
 .pfb-context-item.is-danger {
@@ -122,13 +122,13 @@ onBeforeUnmount(disarm);
 }
 
 .pfb-context-item.is-danger:hover {
-	background: var(--red-50);
+	background: var(--surface-red-2);
 }
 
 .pfb-context-icon {
 	display: flex;
 	align-items: center;
-	color: var(--gray-600);
+	color: var(--text-muted);
 }
 
 .pfb-context-item.is-danger .pfb-context-icon {

@@ -726,14 +726,14 @@ watch(
 
 .field-drag-handle {
 	cursor: grab;
-	color: var(--gray-400);
+	color: var(--text-muted);
 	display: flex;
 	align-items: center;
 	flex-shrink: 0;
 }
 
 .field-drag-handle:hover {
-	color: var(--gray-600);
+	color: var(--text-color);
 }
 
 .field-body {
@@ -764,6 +764,18 @@ watch(
 	display: flex;
 	align-items: center;
 	gap: 2px;
+}
+
+.field-actions .es-button {
+	color: var(--text-muted);
+}
+
+.field-actions .es-button:hover {
+	color: var(--text-color);
+}
+
+.field-actions .es-button[data-theme="red"] {
+	color: var(--ink-red-8);
 }
 
 .field--chip .custom-html {
@@ -903,14 +915,26 @@ watch(
 
 .field-preview-actions .field-drag-handle {
 	cursor: grab;
-	color: var(--gray-400);
+	color: var(--text-muted);
 	display: flex;
 	align-items: center;
 	padding: 2px;
 }
 
 .field-preview-actions .field-drag-handle:hover {
-	color: var(--gray-600);
+	color: var(--text-color);
+}
+
+.field-preview-actions .es-button {
+	color: var(--text-muted);
+}
+
+.field-preview-actions .es-button:hover {
+	color: var(--text-color);
+}
+
+.field-preview-actions .es-button[data-theme="red"] {
+	color: var(--ink-red-8);
 }
 
 .pf-builder-thumb {

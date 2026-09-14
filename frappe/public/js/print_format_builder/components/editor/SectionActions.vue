@@ -49,3 +49,19 @@ defineEmits(["snippet", "remove"]);
 
 const store = inject("$store");
 </script>
+
+<style scoped>
+/* [data-variant="ghost"] matches button.css's own selector specificity, so it's
+   included here to win deterministically rather than relying on stylesheet order. */
+.es-button[data-variant="ghost"] {
+	color: var(--text-muted);
+}
+
+.es-button[data-variant="ghost"]:hover {
+	color: var(--text-color);
+}
+
+.es-button[data-variant="ghost"][data-theme="red"] {
+	color: var(--ink-red-8);
+}
+</style>
