@@ -119,6 +119,19 @@ export default class GridRowForm {
 			me.row.toggle_view();
 			return false;
 		});
+
+		// awesomplete dropdowns are absolutely positioned inside the scrolling
+		// body, so a short form clips them; let them overflow when the body
+		// isn't scrolling (it keeps scrolling for long forms)
+		this.wrapper.on("awesomplete-open", () => {
+			const body = this.wrapper.find(".grid-form-body")[0];
+			const max_height = parseFloat(getComputedStyle(body).maxHeight);
+			const fits = !isNaN(max_height) && body.clientHeight < max_height - 1;
+			this.wrapper.toggleClass("has-open-dropdown", fits);
+		});
+		this.wrapper.on("awesomplete-close", () => {
+			this.wrapper.removeClass("has-open-dropdown");
+		});
 	}
 	toggle_add_delete_button_display($parent) {
 		$parent.find(".row-actions").toggle(this.row.grid.is_editable());

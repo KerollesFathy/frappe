@@ -613,7 +613,9 @@
 .grid-row-open .form-in-grid {
 	opacity: 1;
 	height: auto;
-	overflow: auto;
+	// the body below is the scroll container; clipping here only cuts off
+	// dropdowns that extend past the form
+	overflow: visible;
 	margin: auto;
 	padding: var(--padding-sm) var(--padding-md);
 	position: fixed;
@@ -629,6 +631,12 @@
 	.grid-form-body {
 		max-height: 80vh;
 		overflow: auto;
+	}
+
+	// when the body has nothing to scroll (e.g. a single-field row), let an
+	// open link dropdown extend past the form instead of being clipped
+	&.has-open-dropdown .grid-form-body {
+		overflow: visible;
 	}
 
 	// Tabs styling for child table grid row forms
