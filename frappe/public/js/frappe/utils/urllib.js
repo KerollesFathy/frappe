@@ -53,6 +53,9 @@ window.open_url_post = function open_url_post(URL, PARAMS, new_window) {
 	temp.style.display = "none";
 	if (new_window) {
 		temp.target = "_blank";
+	} else {
+		// A download in the page itself would trigger the form's "Leave site?" prompt.
+		temp.target = get_download_frame().name;
 	}
 	PARAMS["csrf_token"] = frappe.csrf_token;
 	for (var x in PARAMS) {
@@ -67,6 +70,37 @@ window.open_url_post = function open_url_post(URL, PARAMS, new_window) {
 	temp.submit();
 	return temp;
 };
+
+// A file download never loads the frame, so a load means the server sent a page instead.
+function get_download_frame() {
+	const frame = document.createElement("iframe");
+	frame.name = "download-" + frappe.utils.get_random(10);
+	frame.style.display = "none";
+	frame.addEventListener("load", () => {
+		const doc = frame.contentDocument;
+		if (doc?.URL === "about:blank") return;
+		// content the browser shows instead of saving, like an inline PDF, is not an error
+		if (doc && doc.contentType !== "text/html") return;
+		show_download_error(doc);
+		frame.remove();
+	});
+	document.body.appendChild(frame);
+	return frame;
+}
+
+function show_download_error(doc) {
+	// frappe's error page (www/error.html, www/message.html), when it is readable
+	const page = doc?.querySelector(".error-page");
+	const title = page?.querySelector("h4")?.innerText.trim();
+	const message = page?.querySelector(".details p")?.innerText.trim();
+	frappe.msgprint({
+		title: title ? frappe.utils.escape_html(title) : __("Download Failed"),
+		message: message
+			? frappe.utils.escape_html(message)
+			: __("The file could not be downloaded."),
+		indicator: "red",
+	});
+}
 
 window.get_url_arg = frappe.urllib.get_arg;
 window.get_url_dict = frappe.urllib.get_dict;
