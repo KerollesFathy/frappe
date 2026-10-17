@@ -131,4 +131,51 @@ test.describe("Form", () => {
 		await expect(is_primary_phone).toBeVisible();
 		await table_form.locator(".grid-footer-toolbar").click();
 	});
+
+	test("downloads a file without the leave prompt and keeps the warning", async ({
+		page,
+		desk,
+	}) => {
+		const dialogs = [];
+		page.on("dialog", (dialog) => {
+			dialogs.push(dialog.type());
+			dialog.dismiss();
+		});
+
+		await page.goto("/desk/data-export");
+		await desk.ready();
+		await page.evaluate(() => (frappe.boot.developer_mode = 0));
+		await page.evaluate(() => cur_frm.set_value("reference_doctype", "Note"));
+		await expect
+			.poll(() => page.evaluate(() => Object.keys(cur_frm.fields_multicheck || {}).length))
+			.toBeGreaterThan(0);
+		await page
+			.locator('.frappe-control[data-fieldname="file_type"] select')
+			.selectOption("Excel");
+		await expect.poll(() => page.evaluate(() => cur_frm.is_dirty())).toBe(true);
+
+		const download = page.waitForEvent("download");
+		await page.locator(".primary-action:visible", { hasText: "Export" }).click();
+		expect((await download).suggestedFilename()).toBe("Note.xlsx");
+		expect(dialogs).toEqual([]);
+
+		// a dismissed prompt aborts the navigation
+		await page.goto("/desk/user").catch(() => {});
+		expect(dialogs).toEqual(["beforeunload"]);
+		await expect(page).toHaveURL(/\/data-export/);
+	});
+
+	test("shows the error when a download fails", async ({ page, desk }) => {
+		await page.goto("/desk/data-export");
+		await desk.ready();
+		await page.evaluate(() =>
+			open_url_post("/api/method/frappe.core.doctype.data_export.exporter.export_data", {
+				doctype: "Not A DocType",
+				file_type: "Excel",
+			})
+		);
+
+		await expect(desk.get_open_dialog().locator(".modal-title")).toHaveText("Not Found");
+		await expect(page).toHaveURL(/\/data-export/);
+	});
 });
